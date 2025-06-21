@@ -3,8 +3,14 @@ name = "robostart"
 version = "0.1.0"
 edition = "2024"
 
+[lib]
+proc-macro = true
+
 [dependencies]
 clap = { version = "4.5.40", features = ["derive"] }
+inquire = "0.7.5"
+quote = "1.0.40"
 reqwest = "0.12"
+syn = "2.0.104"
 tokio = { version = "1", features = ["full"] }
 zip = "4.1.0"
