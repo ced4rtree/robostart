@@ -1,8 +1,8 @@
-use std::{fs::File, io, path::Path};
+use std::{fs::File, io};
 
 use clap::ValueEnum;
 
-use crate::Args;
+use crate::{get_project_cache, get_project_file_name, get_project_file_path, Args};
 
 /// Which language to use
 #[derive(Clone, Debug, ValueEnum)]
@@ -26,35 +26,38 @@ pub async fn fetch_project(args: &Args) -> Result<(), Box<dyn std::error::Error>
     };
 
     let project_type = match args.project_type {
-        ProjectType::Example  => "example",
-        ProjectType::Template => "template",
+        ProjectType::Example  => "examples",
+        ProjectType::Template => "templates",
     };
 
-    let file_name = format!("{lang}-{project_type}-{}.zip", args.wpilib_version);
-
     let url = format!(
-        "https://frcmaven.wpi.edu/artifactory/release/edu/wpi/first/{}/{}/{}/templates/{}.zip",
+        "https://frcmaven.wpi.edu/artifactory/release/edu/wpi/first/{}/{}/{}/{}-{}.zip",
         lang,
         project_type,
         args.wpilib_version,
+        project_type,
         args.wpilib_version,
     );
+    
 
-    let file_cache = format!("{}/.cache/robostart/", std::env::home_dir().unwrap().display());
-    std::fs::create_dir_all(file_cache.as_str())
-        .expect(format!("Failed to create directory {}", file_cache).as_str());
+    std::fs::create_dir_all(get_project_cache())
+        .expect(format!("Failed to create directory {}", get_project_cache().display()).as_str());
 
     // fetch zip file from artifactory, avoid downloading cached files
-    if !Path::new(format!("{}{}", file_cache, file_name).as_str()).exists() {
+    let file_path = get_project_file_path(&args);
+    if !file_path.exists() {
         let resp = reqwest::get(url.as_str())
             .await
             .expect(format!("Failed to retrieve url: {url}").as_str());
-        let mut out = File::create(format!("{}{}", file_cache, file_name))
+        let mut out = File::create(file_path)
             .expect(format!("Failed to initialize {project_type} file on local filesystem").as_str());
         io::copy(&mut resp.bytes().await?.as_ref(), &mut out)
             .expect(format!("Failed to populate {project_type} file on local filesystem").as_str());
     } else {
-        println!("{} cached, skipping download.", file_name);
+        println!(
+            "{} cached, skipping download.",
+            get_project_file_name(&args).display()
+        );
     }
 
     Ok(())
