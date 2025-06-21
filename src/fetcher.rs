@@ -53,6 +53,8 @@ pub async fn fetch_project(args: &Args) -> Result<(), Box<dyn std::error::Error>
             .expect(format!("Failed to initialize {project_type} file on local filesystem").as_str());
         io::copy(&mut resp.bytes().await?.as_ref(), &mut out)
             .expect(format!("Failed to populate {project_type} file on local filesystem").as_str());
+    } else {
+        println!("{} cached, skipping download.", file_name);
     }
 
     Ok(())
