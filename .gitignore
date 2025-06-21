@@ -3,3 +3,4 @@
 
 # direnv rc file
 .envrc
+.direnv/
