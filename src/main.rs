@@ -1,4 +1,4 @@
-use std::{fs::File, io};
+use std::{fs::File, io, path::Path};
 
 use clap::{Parser, ValueEnum};
 
@@ -34,6 +34,7 @@ struct Args {
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args = Args::parse();
 
+    // parse arguments to figure out what file to fetch
     let lang = match args.language {
         Language::Java => "wpilibj",
         Language::Cpp  => "wpilibc",
@@ -58,12 +59,16 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     std::fs::create_dir_all(file_cache.as_str())
         .expect(format!("Failed to create directory {}", file_cache).as_str());
 
-    let resp = reqwest::get(url.as_str())
-        .await
-        .expect(format!("Failed to retrieve url: {url}").as_str());
-    let mut out = File::create(format!("{}{}", file_cache, file_name))
-        .expect(format!("Failed to initialize {project_type} file on local filesystem").as_str());
-    io::copy(&mut resp.bytes().await?.as_ref(), &mut out)
-        .expect(format!("Failed to populate {project_type} file on local filesystem").as_str());
+    // fetch zip file from artifactory, avoid downloading cached files
+    if !Path::new(format!("{}{}", file_cache, file_name).as_str()).exists() {
+        let resp = reqwest::get(url.as_str())
+            .await
+            .expect(format!("Failed to retrieve url: {url}").as_str());
+        let mut out = File::create(format!("{}{}", file_cache, file_name))
+            .expect(format!("Failed to initialize {project_type} file on local filesystem").as_str());
+        io::copy(&mut resp.bytes().await?.as_ref(), &mut out)
+            .expect(format!("Failed to populate {project_type} file on local filesystem").as_str());
+    }
+
     Ok(())
 }
