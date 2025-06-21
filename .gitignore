@@ -1,0 +1,5 @@
+# cargo build output
+/target
+
+# direnv rc file
+.envrc
