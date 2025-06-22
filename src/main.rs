@@ -1,6 +1,7 @@
-use std::{fs::File, io::{Error, ErrorKind}, path::PathBuf};
+use std::{fs::{self, File}, io::{Error, ErrorKind}, path::PathBuf};
 
-use parser::CliParser;
+use inquire::Select;
+use parser::{CliParser, ProjectType};
 use zip::read::ZipArchive;
 
 mod fetcher;
@@ -57,17 +58,49 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         )).into());
     }
 
+    let random_string: String = rand::random_iter::<u8>()
+        .take(8)
+        .into_iter()
+        .map(|x| x.to_string())
+        .collect();
+    let tmp_output_dir = PathBuf::from(format!("/tmp/robostart-{random_string}/"));
+    fs::create_dir_all(&tmp_output_dir)?;
     println!(
         "Extracting {:?} into {:?}...",
         get_project_file_path(&parser),
-        output_dir
+        tmp_output_dir
     );
-    zip_archive.extract(output_dir.clone())
+    zip_archive.extract(tmp_output_dir.clone())
         .expect(format!(
             "Failed to extract {:?} into {:?}",
             get_project_file_path(&parser),
-            output_dir
+            tmp_output_dir
         ).as_str());
+
+    let project_type = match parser.project_type() {
+        ProjectType::Example => "examples",
+        ProjectType::Template => "templates",
+    };
+    let subtype_path_prefix = format!("{}{}/", tmp_output_dir.to_str().unwrap(), project_type);
+    let subtype_paths: Vec<String> = fs::read_dir(tmp_output_dir.join(project_type))?
+        .into_iter()
+        .flatten()
+        .map(|x| x.path().to_str().unwrap().to_string().replace(&subtype_path_prefix, ""))
+        .collect();
+    let prompt = format!(
+        "Desired {}",
+        project_type.to_string()
+    );
+    let project_subtype = Select::new(&prompt, subtype_paths)
+        .prompt()?;
+
+    let source_dir = format!(
+        "{}{}/{}/",
+        tmp_output_dir.to_str().unwrap(),
+        project_type,
+        project_subtype
+    );
+    std::fs::rename(source_dir, output_dir)?;
 
     println!("Project successfully created!");
 
