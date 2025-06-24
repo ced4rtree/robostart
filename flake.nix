@@ -1,5 +1,5 @@
 {
-  description = "Nix devshells!";
+  description = "Robostart FRC Robot Project Initializer";
 
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs";
