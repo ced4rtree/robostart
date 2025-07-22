@@ -1,32 +1,25 @@
 use std::{fs::File, io};
 
-use crate::{get_project_cache, get_project_file_path, parser::{CliParser, Language}};
+use crate::{get_robostart_cache, get_project_zip_path, parser::CliParser};
 
 pub async fn fetch_project(parser: &CliParser) -> Result<(), Box<dyn std::error::Error>> {
-    let lang = match parser.language() {
-        Language::Java => "wpilibj",
-        Language::Cpp => "wpilibc",
-    };
-
+    // transform e.g. "Template" into "templates"
     let mut project_type = parser.project_type()
         .to_string()
         .to_lowercase();
     project_type.push('s');
     
     let url = format!(
-        "https://frcmaven.wpi.edu/artifactory/release/edu/wpi/first/{}/{}/{}/{}-{}.zip",
-        lang,
-        project_type,
+        "https://github.com/wpilibsuite/vscode-wpilib/releases/download/v{}/{}.zip",
         parser.wpilib_version(),
         project_type,
-        parser.wpilib_version(),
     );
 
-    std::fs::create_dir_all(get_project_cache())
-        .expect(format!("Failed to create directory {}", get_project_cache().display()).as_str());
+    std::fs::create_dir_all(get_robostart_cache())
+        .expect(format!("Failed to create directory {:?}", get_robostart_cache()).as_str());
 
-    // fetch zip file from artifactory, avoid downloading cached files
-    let file_path = get_project_file_path(&parser);
+    // fetch zip file from github, avoid downloading cached files
+    let file_path = get_project_zip_path(&parser);
     if !file_path.exists() {
         println!("Downloading {} as {}...", url, file_path.display());
         let resp = reqwest::get(url.as_str())

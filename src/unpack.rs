@@ -1,33 +1,31 @@
+use std::fs::{self, File};
 use std::io::Error;
 use std::{io::ErrorKind, path::PathBuf};
-use std::fs::{self, File};
 
 use inquire::Select;
 use zip::ZipArchive;
 
-use crate::parser::ProjectType;
+use crate::parser::{Language, ProjectType};
 
-pub fn unpack_zip(zip_file_path: &PathBuf, output_dir: &PathBuf) -> Result<(), Box<dyn std::error::Error>> {
+pub fn unpack_fetched_zip(
+    zip_file_path: &PathBuf,
+    output_dir: &PathBuf,
+) -> Result<(), Box<dyn std::error::Error>> {
     let project_file = File::open(zip_file_path)
-        .expect(format!(
-            "Failed to open project file {:?}",
-            zip_file_path
-        ).as_str());
+        .expect(format!("Failed to open project file {:?}", zip_file_path).as_str());
 
     let mut zip_archive = ZipArchive::new(project_file)?;
 
-    println!(
-        "Extracting {:?} into {:?}...",
-        zip_file_path,
-        output_dir
-    );
-    zip_archive.extract(output_dir.clone())
-        .expect(format!(
+    std::fs::create_dir_all(output_dir)?;
+    println!("Extracting {:?} into {:?}...", zip_file_path, output_dir);
+    zip_archive.extract(output_dir.clone()).expect(
+        format!(
             "Failed to extract {:?} into {:?}",
-            zip_file_path,
-            output_dir
-        ).as_str());
-    
+            zip_file_path, output_dir
+        )
+        .as_str(),
+    );
+
     Ok(())
 }
 
@@ -35,50 +33,62 @@ pub fn install_project(
     source_dir: &PathBuf,
     output_prefix: &PathBuf,
     project_name: &String,
-    project_type: &ProjectType
+    project_type: &ProjectType,
+    language: &Language,
 ) -> Result<(), Box<dyn std::error::Error>> {
-    // create output prefix directory
+    // create output prefix directory in case it doesn't already exist
     std::fs::create_dir_all(&output_prefix).expect(
         format!(
             "Failed to create output prefix directory {:?}",
             output_prefix
-        ).as_str()
+        )
+        .as_str(),
     );
 
     // prevent creating a robot project in a directory that already exists
     let output_dir = output_prefix.join(project_name);
     if output_dir.exists() {
-        return Err(Error::new(ErrorKind::AlreadyExists, format!(
-            "Project directory {} already exists",
-            output_dir.to_str().unwrap()
-        )).into());
+        return Err(Error::new(
+            ErrorKind::AlreadyExists,
+            format!(
+                "Project directory {} already exists",
+                output_dir.to_str().unwrap()
+            ),
+        )
+        .into());
     }
 
-    let project_type = match project_type {
-        ProjectType::Example => "examples",
-        ProjectType::Template => "templates",
-    };
-    let subtype_path_prefix = format!("{}{}/", source_dir.to_str().unwrap(), project_type);
-    let subtype_paths: Vec<String> = fs::read_dir(source_dir.join(project_type))?
+    let language = language.to_string().to_lowercase();
+
+    let subtype_path_prefix = format!(
+        "{}/{}/",
+        source_dir.to_str().unwrap(),
+        language
+    );
+    let subtype_paths: Vec<String> = fs::read_dir(&subtype_path_prefix)?
         .into_iter()
         .flatten()
-        .map(|x| x.path().to_str().unwrap().to_string().replace(&subtype_path_prefix, ""))
-        .filter(|x| !x.ends_with(".json"))
+        .map(|x| {
+            x.path()
+                .to_str()
+                .unwrap()
+                .to_string()
+                .replace(&subtype_path_prefix, "")
+        })
         .collect();
-    let prompt = format!(
-        "Desired {}",
-        project_type.to_string()
-    );
+    let prompt = format!("Desired {}", project_type.to_string());
+
     let project_subtype = Select::new(&prompt, subtype_paths)
         .prompt()?;
 
+    println!("source_dir: {:?}", source_dir);
+    println!("project_subtype: {:?}", project_subtype);
     let source_dir = format!(
-        "{}{}/{}/",
-        source_dir.to_str().unwrap(),
-        project_type,
-        project_subtype
+        "{}/{}/{}/",
+        source_dir.to_str().unwrap(), language, project_subtype
     );
-    std::fs::rename(source_dir, output_dir)?;
-    
+    println!("source_dir: {:?}", source_dir);
+    copy_dir::copy_dir(source_dir, output_dir)?;
+
     Ok(())
 }
