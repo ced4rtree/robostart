@@ -49,7 +49,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         &parser.output_prefix(),
         &parser.name(),
         &parser.project_type(),
-        &parser.language()
+        &parser.language(),
+        &parser.team_number(),
     )?;
 
     println!("Project successfully created!");

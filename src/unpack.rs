@@ -1,5 +1,5 @@
 use std::fs::{self, File};
-use std::io::Error;
+use std::io::{Error, Read, Write};
 use std::{io::ErrorKind, path::PathBuf};
 
 use inquire::Select;
@@ -35,6 +35,7 @@ pub fn install_project(
     project_name: &String,
     project_type: &ProjectType,
     language: &Language,
+    team_number: &u32
 ) -> Result<(), Box<dyn std::error::Error>> {
     // create output prefix directory in case it doesn't already exist
     std::fs::create_dir_all(&output_prefix).expect(
@@ -60,11 +61,7 @@ pub fn install_project(
 
     let language = language.to_string().to_lowercase();
 
-    let subtype_path_prefix = format!(
-        "{}/{}/",
-        source_dir.to_str().unwrap(),
-        language
-    );
+    let subtype_path_prefix = format!("{}/{}/", source_dir.to_str().unwrap(), language);
     let subtype_paths: Vec<String> = fs::read_dir(&subtype_path_prefix)?
         .into_iter()
         .flatten()
@@ -78,17 +75,26 @@ pub fn install_project(
         .collect();
     let prompt = format!("Desired {}", project_type.to_string());
 
-    let project_subtype = Select::new(&prompt, subtype_paths)
-        .prompt()?;
+    let project_subtype = Select::new(&prompt, subtype_paths).prompt()?;
 
-    println!("source_dir: {:?}", source_dir);
-    println!("project_subtype: {:?}", project_subtype);
     let source_dir = format!(
         "{}/{}/{}/",
-        source_dir.to_str().unwrap(), language, project_subtype
+        source_dir.to_str().unwrap(),
+        language,
+        project_subtype
     );
-    println!("source_dir: {:?}", source_dir);
-    copy_dir::copy_dir(source_dir, output_dir)?;
+    copy_dir::copy_dir(source_dir, &output_dir)?;
+
+    // write team number to wpilib_preferences.json
+    let preferences_path = output_dir.join(".wpilib/wpilib_preferences.json");
+    let mut preferences_file = std::fs::File::open(&preferences_path)?;
+    let mut preferences = String::new();
+    preferences_file.read_to_string(&mut preferences)?;
+    let team_number = format!("\"teamNumber\": {}", team_number);
+    preferences = preferences
+        .replace("\"teamNumber\": -1", team_number.as_str());
+    let mut preferences_file = std::fs::File::create(preferences_path)?;
+    preferences_file.write_all(preferences.as_bytes())?;
 
     Ok(())
 }

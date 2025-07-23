@@ -2,7 +2,7 @@
 
 use std::{fmt::{Display, Formatter}, path::PathBuf};
 
-use inquire::{InquireError, Select, Text};
+use inquire::{CustomType, InquireError, Select, Text};
 use robostart::AllVariants;
 use clap::{Parser, ValueEnum};
 
@@ -40,20 +40,24 @@ struct Args {
     language: Option<Language>,
 
     /// Type of project to initalize
-    #[arg(short = 't', long = "type")]
+    #[arg(short, long)]
     project_type: Option<ProjectType>,
 
     /// What version to download
     #[arg(short, long)]
     wpilib_version: Option<String>,
 
-    /// Where to put the new project
+    /// The parent directory for the new project
     #[arg(short, long)]
     output_prefix: Option<PathBuf>,
 
     /// Name of the new project
     #[arg(short, long)]
     name: Option<String>,
+
+    /// Your team number
+    #[arg(short, long)]
+    team_number: Option<u32>,
 }
 
 pub struct CliParser {
@@ -104,6 +108,13 @@ impl CliParser {
                 .prompt()?);
         }
 
+        if ret.args.team_number.is_none() {
+            ret.args.team_number = Some(CustomType::new("Team Number: ")
+                .with_formatter(&|i: u32| format!("${i}"))
+                .with_error_message("Please type a valid integer greater than 0")
+                .prompt()?)
+        }
+
         Ok(ret)
     }
 
@@ -125,5 +136,9 @@ impl CliParser {
 
     pub fn name(&self) -> String {
         return self.args.name.clone().unwrap();
+    }
+
+    pub fn team_number(&self) -> u32 {
+        return self.args.team_number.clone().unwrap();
     }
 }
