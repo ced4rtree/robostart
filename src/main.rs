@@ -31,6 +31,10 @@ pub fn get_project_unzipped_path(parser: &CliParser) -> PathBuf {
     get_robostart_cache().join(get_project_name(&parser))
 }
 
+pub fn get_cached_commands_vendordep(parser: &CliParser) -> PathBuf {
+    get_robostart_cache().join(format!("vendordeps/newcommands-{}.json", parser.wpilib_version()))
+}
+
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let parser = CliParser::new()?;
@@ -46,11 +50,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // transfer project from cache into install dir
     unpack::install_project(
         &get_project_unzipped_path(&parser),
-        &parser.output_prefix(),
-        &parser.name(),
-        &parser.project_type(),
-        &parser.language(),
-        &parser.team_number(),
+        &parser
     )?;
 
     println!("Project successfully created!");

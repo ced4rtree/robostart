@@ -5,7 +5,8 @@ use std::{io::ErrorKind, path::PathBuf};
 use inquire::Select;
 use zip::ZipArchive;
 
-use crate::parser::{Language, ProjectType};
+use crate::get_cached_commands_vendordep;
+use crate::parser::CliParser;
 
 pub fn unpack_fetched_zip(
     zip_file_path: &PathBuf,
@@ -31,23 +32,20 @@ pub fn unpack_fetched_zip(
 
 pub fn install_project(
     source_dir: &PathBuf,
-    output_prefix: &PathBuf,
-    project_name: &String,
-    project_type: &ProjectType,
-    language: &Language,
-    team_number: &u32
+    parser: &CliParser
 ) -> Result<(), Box<dyn std::error::Error>> {
     // create output prefix directory in case it doesn't already exist
-    std::fs::create_dir_all(&output_prefix).expect(
+    std::fs::create_dir_all(&parser.output_prefix()).expect(
         format!(
             "Failed to create output prefix directory {:?}",
-            output_prefix
+            parser.output_prefix()
         )
         .as_str(),
     );
 
     // prevent creating a robot project in a directory that already exists
-    let output_dir = output_prefix.join(project_name);
+    let output_dir = parser.output_prefix()
+        .join(parser.name());
     if output_dir.exists() {
         return Err(Error::new(
             ErrorKind::AlreadyExists,
@@ -59,7 +57,7 @@ pub fn install_project(
         .into());
     }
 
-    let language = language.to_string().to_lowercase();
+    let language = parser.language().to_string().to_lowercase();
 
     let subtype_path_prefix = format!("{}/{}/", source_dir.to_str().unwrap(), language);
     let subtype_paths: Vec<String> = fs::read_dir(&subtype_path_prefix)?
@@ -73,7 +71,7 @@ pub fn install_project(
                 .replace(&subtype_path_prefix, "")
         })
         .collect();
-    let prompt = format!("Desired {}", project_type.to_string());
+    let prompt = format!("Desired {}", parser.project_type().to_string());
 
     let project_subtype = Select::new(&prompt, subtype_paths).prompt()?;
 
@@ -90,11 +88,17 @@ pub fn install_project(
     let mut preferences_file = std::fs::File::open(&preferences_path)?;
     let mut preferences = String::new();
     preferences_file.read_to_string(&mut preferences)?;
-    let team_number = format!("\"teamNumber\": {}", team_number);
+    let team_number = format!("\"teamNumber\": {}", parser.team_number());
     preferences = preferences
         .replace("\"teamNumber\": -1", team_number.as_str());
     let mut preferences_file = std::fs::File::create(preferences_path)?;
     preferences_file.write_all(preferences.as_bytes())?;
+
+    // install WPILibNewCommands.json
+    let commands_file = get_cached_commands_vendordep(&parser);
+    let vendordep_folder = output_dir.join("vendordeps");
+    std::fs::create_dir_all(&vendordep_folder)?;
+    std::fs::copy(commands_file, vendordep_folder.join("WPILibNewCommands.json"))?;
 
     Ok(())
 }
