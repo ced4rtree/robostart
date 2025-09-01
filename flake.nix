@@ -3,18 +3,29 @@
 
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs";
+    naersk.url = "github:nix-community/naersk";
   };
 
-  outputs = { nixpkgs, ... }: let
+  outputs = { nixpkgs, naersk, ... }: let
     system = "x86_64-linux";
-    pkgs = import nixpkgs { inherit system; };
+    pkgs = nixpkgs.legacyPackages."${system}";
+    naerskLib = pkgs.callPackage naersk {};
   in {
+    packages."${system}".default = naerskLib.buildPackage {
+      src = ./.;
+      buildInputs = [ pkgs.openssl ];
+      nativeBuildInputs = [ pkgs.pkg-config ];
+    };
+
     devShells.${system}.default = pkgs.mkShell {
-      packages = with pkgs; [
+      buildInputs = with pkgs; [
         rustup
-        pkg-config
         openssl
       ];
+
+      nativeBuildInputs = [ pkgs.pkg-config ];
+
+      env.RUST_SRC_PATH = "${pkgs.rust.packages.stable.rustPlatform.rustLibSrc}";
     };
   };
 }
