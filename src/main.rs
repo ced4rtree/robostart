@@ -35,6 +35,10 @@ pub fn get_cached_commands_vendordep(parser: &CliParser) -> PathBuf {
     get_robostart_cache().join(format!("vendordeps/newcommands-{}.json", parser.wpilib_version()))
 }
 
+pub fn get_cached_gitignore() -> PathBuf {
+    get_robostart_cache().join("gitignore")
+}
+
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let parser = CliParser::new()?;

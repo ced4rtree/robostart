@@ -5,7 +5,7 @@ use std::{io::ErrorKind, path::PathBuf};
 use inquire::Select;
 use zip::ZipArchive;
 
-use crate::get_cached_commands_vendordep;
+use crate::{get_cached_commands_vendordep, get_cached_gitignore};
 use crate::parser::CliParser;
 
 pub fn unpack_fetched_zip(
@@ -93,6 +93,11 @@ pub fn install_project(
         .replace("\"teamNumber\": -1", team_number.as_str());
     let mut preferences_file = std::fs::File::create(preferences_path)?;
     preferences_file.write_all(preferences.as_bytes())?;
+
+    // install gitignore
+    let cached_gitignore = get_cached_gitignore();
+    let project_gitignore = output_dir.join(".gitignore");
+    std::fs::copy(cached_gitignore, project_gitignore);
 
     // install WPILibNewCommands.json
     let commands_file = get_cached_commands_vendordep(&parser);
