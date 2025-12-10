@@ -3,29 +3,38 @@
 
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs";
+    flake-parts.url = "github:hercules-ci/flake-parts";
+    systems.url = "github:nix-systems/default";
     naersk.url = "github:nix-community/naersk";
   };
 
-  outputs = { nixpkgs, naersk, ... }: let
-    system = "x86_64-linux";
-    pkgs = nixpkgs.legacyPackages."${system}";
-    naerskLib = pkgs.callPackage naersk {};
-  in {
-    packages."${system}".default = naerskLib.buildPackage {
-      src = ./.;
-      buildInputs = [ pkgs.openssl ];
-      nativeBuildInputs = [ pkgs.pkg-config ];
-    };
+  outputs = inputs@{ flake-parts, ... }:
+    flake-parts.lib.mkFlake { inherit inputs; } ({ ... }: {
+      systems = import inputs.systems;
 
-    devShells.${system}.default = pkgs.mkShell {
-      buildInputs = with pkgs; [
-        rustup
-        openssl
-      ];
+      perSystem = { pkgs, self', ... }: let
+        naerskLib = pkgs.callPackage inputs.naersk {};
+        basePackage = release: naerskLib.buildPackage {
+          src = ./.;
+          inherit release;
+          buildInputs = [ pkgs.openssl ];
+          nativeBuildInputs = [ pkgs.pkg-config ];
+        };
+      in {
+        packages.dev = basePackage false;
+        packages.robostart = basePackage true;
+        packages.default = self'.packages.robostart;
 
-      nativeBuildInputs = [ pkgs.pkg-config ];
+        devShells.default = pkgs.mkShell {
+          buildInputs = with pkgs; [
+            rustup
+            openssl
+          ];
 
-      env.RUST_SRC_PATH = "${pkgs.rust.packages.stable.rustPlatform.rustLibSrc}";
-    };
-  };
+          nativeBuildInputs = [ pkgs.pkg-config ];
+
+          env.RUST_SRC_PATH = "${pkgs.rust.packages.stable.rustPlatform.rustLibSrc}";
+        };
+      };
+    });
 }
