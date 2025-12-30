@@ -29,6 +29,7 @@
           buildInputs = with pkgs; [
             rustup
             openssl
+            cargo-deb
           ];
 
           nativeBuildInputs = [ pkgs.pkg-config ];
