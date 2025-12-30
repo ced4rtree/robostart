@@ -8,6 +8,8 @@ WPILib currently has a standalone robot project creator, and one built into
 their distribution of VSCode. However, the standalone project creator is slated
 to be removed for the 2027 season. Thus, Robostart was born.
 
+https://github.com/user-attachments/assets/bcbddcfd-f959-450f-bd7a-52d901cf95a6
+
 ## Usage
 
 Robostart can be invoked via the command line as such:
@@ -24,8 +26,6 @@ You can also inform Robostart of many of these dialogue options with flags.
 ```bash
 robostart -h
 ```
-
-Output:
 
 ```
 Usage: robostart [OPTIONS]
