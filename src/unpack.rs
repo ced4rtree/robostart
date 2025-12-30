@@ -97,7 +97,8 @@ pub fn install_project(
     // install gitignore
     let cached_gitignore = get_cached_gitignore();
     let project_gitignore = output_dir.join(".gitignore");
-    std::fs::copy(cached_gitignore, project_gitignore);
+    std::fs::copy(&cached_gitignore, &project_gitignore)
+        .expect(format!("Failed to copy {:?} to {:?}", cached_gitignore, project_gitignore).as_str());
 
     // install WPILibNewCommands.json
     let commands_file = get_cached_commands_vendordep(&parser);
