@@ -4,7 +4,7 @@ on: push
 
 jobs:
   build-linux:
-    name: Build - Linux
+    name: Build - linux
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -39,4 +39,4 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: "robostart-${{ matrix.os }}"
-          path: "target/release/robostart/${{ matrix.suffix }}"
+          path: "target/release/robostart${{ matrix.suffix }}"
