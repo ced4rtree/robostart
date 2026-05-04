@@ -1,5 +1,6 @@
 use std::fs::{self, File};
 use std::io::{Error, Read, Write};
+use std::path::Path;
 use std::{io::ErrorKind, path::PathBuf};
 
 use inquire::Select;
@@ -13,34 +14,32 @@ pub fn unpack_fetched_zip(
     output_dir: &PathBuf,
 ) -> Result<(), Box<dyn std::error::Error>> {
     let project_file = File::open(zip_file_path)
-        .expect(format!("Failed to open project file {:?}", zip_file_path).as_str());
+        .unwrap_or_else(|_| panic!("Failed to open project file {:?}", zip_file_path));
 
     let mut zip_archive = ZipArchive::new(project_file)?;
 
     std::fs::create_dir_all(output_dir)?;
     println!("Extracting {:?} into {:?}...", zip_file_path, output_dir);
-    zip_archive.extract(output_dir.clone()).expect(
-        format!(
+    zip_archive.extract(output_dir.clone()).unwrap_or_else(
+        |_| panic!(
             "Failed to extract {:?} into {:?}",
             zip_file_path, output_dir
         )
-        .as_str(),
     );
 
     Ok(())
 }
 
 pub fn install_project(
-    source_dir: &PathBuf,
+    source_dir: &Path,
     parser: &CliParser
 ) -> Result<(), Box<dyn std::error::Error>> {
     // create output prefix directory in case it doesn't already exist
-    std::fs::create_dir_all(&parser.output_prefix()).expect(
-        format!(
+    std::fs::create_dir_all(parser.output_prefix()).unwrap_or_else(
+        |_| panic!(
             "Failed to create output prefix directory {:?}",
             parser.output_prefix()
         )
-        .as_str(),
     );
 
     // prevent creating a robot project in a directory that already exists
@@ -61,7 +60,6 @@ pub fn install_project(
 
     let subtype_path_prefix = format!("{}/{}/", source_dir.to_str().unwrap(), language);
     let subtype_paths: Vec<String> = fs::read_dir(&subtype_path_prefix)?
-        .into_iter()
         .flatten()
         .map(|x| {
             x.path()
@@ -71,7 +69,7 @@ pub fn install_project(
                 .replace(&subtype_path_prefix, "")
         })
         .collect();
-    let prompt = format!("Desired {}", parser.project_type().to_string());
+    let prompt = format!("Desired {}", parser.project_type());
 
     let project_subtype = Select::new(&prompt, subtype_paths).prompt()?;
 
@@ -98,10 +96,10 @@ pub fn install_project(
     let cached_gitignore = get_cached_gitignore();
     let project_gitignore = output_dir.join(".gitignore");
     std::fs::copy(&cached_gitignore, &project_gitignore)
-        .expect(format!("Failed to copy {:?} to {:?}", cached_gitignore, project_gitignore).as_str());
+        .unwrap_or_else(|_| panic!("Failed to copy {:?} to {:?}", cached_gitignore, project_gitignore));
 
     // install WPILibNewCommands.json
-    let commands_file = get_cached_commands_vendordep(&parser);
+    let commands_file = get_cached_commands_vendordep(parser);
     let vendordep_folder = output_dir.join("vendordeps");
     std::fs::create_dir_all(&vendordep_folder)?;
     std::fs::copy(commands_file, vendordep_folder.join("WPILibNewCommands.json"))?;

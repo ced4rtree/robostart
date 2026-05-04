@@ -16,19 +16,19 @@ pub async fn fetch_project(parser: &CliParser) -> Result<(), Box<dyn std::error:
     );
 
     std::fs::create_dir_all(get_robostart_cache())
-        .expect(format!("Failed to create directory {:?}", get_robostart_cache()).as_str());
+        .unwrap_or_else(|_| panic!("Failed to create directory {:?}", get_robostart_cache()));
 
     // fetch zip file from github, avoid downloading cached files
-    let zip_file_path = get_project_zip_path(&parser);
+    let zip_file_path = get_project_zip_path(parser);
     if !zip_file_path.exists() {
         println!("Downloading {} as {}...", zip_url, zip_file_path.display());
         let resp = reqwest::get(zip_url.as_str())
             .await
-            .expect(format!("Failed to retrieve url: {zip_url}").as_str());
+            .unwrap_or_else(|_| panic!("Failed to retrieve url: {zip_url}"));
         let mut out = File::create(zip_file_path)
-            .expect(format!("Failed to initialize {project_type} file on local filesystem").as_str());
+            .unwrap_or_else(|_| panic!("Failed to initialize {project_type} file on local filesystem"));
         io::copy(&mut resp.bytes().await?.as_ref(), &mut out)
-            .expect(format!("Failed to populate {project_type} file on local filesystem").as_str());
+            .unwrap_or_else(|_| panic!("Failed to populate {project_type} file on local filesystem"));
     } else {
         println!("{} cached, skipping download.", zip_file_path.display());
     }
@@ -40,17 +40,17 @@ pub async fn fetch_project(parser: &CliParser) -> Result<(), Box<dyn std::error:
         println!("Downloading {} as {}...", gitignore_url, gitignore_file.display());
         let resp = reqwest::get(gitignore_url)
             .await
-            .expect(format!("Failed to retrieve url: {gitignore_url}").as_str());
+            .unwrap_or_else(|_| panic!("Failed to retrieve url: {gitignore_url}"));
         let mut out = File::create(&gitignore_file)
-            .expect(format!("Failed to create file {:?}", gitignore_file).as_str());
+            .unwrap_or_else(|_| panic!("Failed to create file {:?}", gitignore_file));
         io::copy(&mut resp.bytes().await?.as_ref(), &mut out)
-            .expect(format!("Failed to populate {:?} file on local filesystem", gitignore_file).as_str());
+            .unwrap_or_else(|_| panic!("Failed to populate {:?} file on local filesystem", gitignore_file));
     } else {
         println!("{} cached, skipping download.", gitignore_file.display());
     }
 
     // fetch vendordeps/WPILibNewCommands.json
-    let commands_file = get_cached_commands_vendordep(&parser);
+    let commands_file = get_cached_commands_vendordep(parser);
     std::fs::create_dir_all(commands_file.parent().unwrap())?;
     if !commands_file.exists() {
         let commands_url = format!(
@@ -61,11 +61,11 @@ pub async fn fetch_project(parser: &CliParser) -> Result<(), Box<dyn std::error:
 
         let resp = reqwest::get(&commands_url)
             .await
-            .expect(format!("Failed to retrieve url: {commands_url}").as_str());
+            .unwrap_or_else(|_| panic!("Failed to retrieve url: {commands_url}"));
         let mut out = File::create(&commands_file)
-            .expect(format!("Failed to create file {:?}", commands_file).as_str());
+            .unwrap_or_else(|_| panic!("Failed to create file {:?}", commands_file));
         io::copy(&mut resp.bytes().await?.as_ref(), &mut out)
-            .expect(format!("Failed to populate {:?} with data", out).as_str());
+            .unwrap_or_else(|_| panic!("Failed to populate {:?} with data", out));
     } else {
         println!("{:?} already cached, skipping download.", commands_file);
     }

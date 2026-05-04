@@ -23,12 +23,12 @@ pub fn get_project_name(parser: &CliParser) -> String {
 
 // where the cached .zip with all of the examples/templates is located
 pub fn get_project_zip_path(parser: &CliParser) -> PathBuf {
-    get_robostart_cache().join(get_project_name(&parser) + ".zip")
+    get_robostart_cache().join(get_project_name(parser) + ".zip")
 }
 
 // where the cached directory with all of the examples/templates is located
 pub fn get_project_unzipped_path(parser: &CliParser) -> PathBuf {
-    get_robostart_cache().join(get_project_name(&parser))
+    get_robostart_cache().join(get_project_name(parser))
 }
 
 pub fn get_cached_commands_vendordep(parser: &CliParser) -> PathBuf {

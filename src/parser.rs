@@ -1,5 +1,4 @@
 /// Parse user supplied arguments
-
 use std::{fmt::{Display, Formatter}, path::PathBuf};
 
 use inquire::{CustomType, InquireError, Select, Text};
@@ -119,26 +118,26 @@ impl CliParser {
     }
 
     pub fn language(&self) -> Language {
-        return self.args.language.clone().unwrap();
+        self.args.language.clone().unwrap()
     }
 
     pub fn project_type(&self) -> ProjectType {
-        return self.args.project_type.clone().unwrap();
+        self.args.project_type.clone().unwrap()
     }
 
     pub fn wpilib_version(&self) -> String {
-        return self.args.wpilib_version.clone().unwrap();
+        self.args.wpilib_version.clone().unwrap()
     }
 
     pub fn output_prefix(&self) -> PathBuf {
-        return self.args.output_prefix.clone().unwrap();
+        self.args.output_prefix.clone().unwrap()
     }
 
     pub fn name(&self) -> String {
-        return self.args.name.clone().unwrap();
+        self.args.name.clone().unwrap()
     }
 
     pub fn team_number(&self) -> u32 {
-        return self.args.team_number.clone().unwrap();
+        self.args.team_number.unwrap()
     }
 }
