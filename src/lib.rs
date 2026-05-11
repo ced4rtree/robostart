@@ -6,7 +6,36 @@ extern crate quote;
 use proc_macro::TokenStream;
 use quote::ToTokens;
 use regex::Regex;
-use syn::{DataStruct, DeriveInput, Fields};
+use syn::{DataStruct, DeriveInput, Fields, FieldsNamed};
+
+fn parser_gen_getters(fields: &FieldsNamed) -> Vec<TokenStream> {
+    let option_regex = Regex::new("Option( )?<.*>").unwrap();
+
+    fields.named.iter().map(|field| {
+        let field_name = &field.ident;
+        let mut field_type = field.ty.to_token_stream();
+
+        // remove Option<> from field_type for the getter
+        let field_type_str = field_type.to_token_stream().to_string();
+        let is_option = option_regex.is_match(field_type_str.as_str());
+
+        if is_option {
+            let type_tokens: Vec<_> = field.ty.to_token_stream().into_iter().collect();
+            let inner_tokens = type_tokens[2..type_tokens.len()-1].to_vec();
+            field_type = proc_macro2::TokenStream::from_iter(inner_tokens);
+        }
+
+        let getter_ret: syn::Expr = match is_option {
+            true => syn::parse_quote!(self.#field_name.as_ref().unwrap()),
+            false => syn::parse_quote!(&self.#field_name)
+        };
+        quote! {
+            pub fn #field_name(&self) -> &#field_type {
+                #getter_ret
+            }
+        }.into()
+    }).collect()
+}
 
 /// Special Robostart parser
 ///
@@ -51,36 +80,7 @@ pub fn parser(input: TokenStream) -> TokenStream {
             fields: Fields::Named(ref fields),
             ..
         }) => {
-            let mut field_getters: Vec<proc_macro2::TokenStream> = vec![];
-
-            let option_regex = Regex::new("Option( )?<.*>").unwrap();
-
-            for field in fields.named.iter() {
-                let field_name = &field.ident;
-                let mut field_type = field.ty.to_token_stream();
-
-                // remove Option<> from field_type for the getter
-                let field_type_str = field_type.to_token_stream().to_string();
-                let is_option = option_regex.is_match(field_type_str.as_str());
-
-                if is_option {
-                    let type_tokens: Vec<_> = field.ty.to_token_stream().into_iter().collect();
-                    let inner_tokens = type_tokens[2..type_tokens.len()-1].to_vec();
-                    field_type = proc_macro2::TokenStream::from_iter(inner_tokens);
-                }
-
-                let getter_ret: syn::Expr = match is_option {
-                    true => syn::parse_quote!(self.#field_name.as_ref().unwrap()),
-                    false => syn::parse_quote!(&self.#field_name)
-                };
-                let field_getter = quote! {
-                    pub fn #field_name(&self) -> &#field_type {
-                        #getter_ret
-                    }
-                };
-
-                field_getters.push(field_getter);
-            }
+            let field_getters = parser_gen_getters(&fields);
 
             quote! {
                 impl #name {
