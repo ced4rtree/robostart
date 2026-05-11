@@ -31,9 +31,9 @@ impl Display for ProjectType {
     }    
 }
 
-#[derive(clap::Parser, Debug)]
+#[derive(robostart::Parser, clap::Parser, Debug)]
 #[command(version, about, long_about = None)]
-struct Args {
+pub struct CliParser {
     /// Language to initialize
     #[arg(short, long)]
     language: Option<Language>,
@@ -59,85 +59,54 @@ struct Args {
     team_number: Option<u32>,
 }
 
-pub struct CliParser {
-    args: Args
-}
-
 impl CliParser {
     pub fn new() -> Result<Self, InquireError> {
-        let mut ret = CliParser {
-            args: Args::parse(),
-        };
+        let mut ret = CliParser::parse();
 
-        if ret.args.language.is_none() {
-            ret.args.language = Some(Select::new(
+        if ret.language.is_none() {
+            ret.language = Some(Select::new(
                 "Language: ",
                 Language::all_variants().to_vec()
             ).prompt()?);
         }
 
-        if ret.args.project_type.is_none() {
-            ret.args.project_type = Some(Select::new(
+        if ret.project_type.is_none() {
+            ret.project_type = Some(Select::new(
                 "Project Type: ",
                 ProjectType::all_variants().to_vec()
             ).prompt()?);
         }
 
-        if ret.args.wpilib_version.is_none() {
-            let proj_type = ret.args
-                .project_type
+        if ret.wpilib_version.is_none() {
+            let proj_type = ret.project_type
                 .as_ref()
                 .unwrap();
-            ret.args.wpilib_version = Some(Text::new(
+            ret.wpilib_version = Some(Text::new(
                 format!("{} Version: ", proj_type).as_str()
             ).with_help_message("This will match the corresponding WPILib version, e.g. 2025.3.2")
                 .prompt()?);
         }
 
-        if ret.args.output_prefix.is_none() {
-            ret.args.output_prefix = Some(PathBuf::from(Text::new(
+        if ret.output_prefix.is_none() {
+            ret.output_prefix = Some(PathBuf::from(Text::new(
                 "What directory should the project live under?"
             ).with_help_message("This is just the parent directory of your project, don't include the project name.")
                 .prompt()?
                 .replace("~", std::env::home_dir().unwrap().to_str().unwrap())))
         }
 
-        if ret.args.name.is_none() {
-            ret.args.name = Some(Text::new("Project Name: ")
+        if ret.name.is_none() {
+            ret.name = Some(Text::new("Project Name: ")
                 .prompt()?);
         }
 
-        if ret.args.team_number.is_none() {
-            ret.args.team_number = Some(CustomType::new("Team Number: ")
+        if ret.team_number.is_none() {
+            ret.team_number = Some(CustomType::new("Team Number: ")
                 .with_formatter(&|i: u32| format!("${i}"))
                 .with_error_message("Please type a valid integer greater than 0")
                 .prompt()?)
         }
 
         Ok(ret)
-    }
-
-    pub fn language(&self) -> Language {
-        self.args.language.clone().unwrap()
-    }
-
-    pub fn project_type(&self) -> ProjectType {
-        self.args.project_type.clone().unwrap()
-    }
-
-    pub fn wpilib_version(&self) -> String {
-        self.args.wpilib_version.clone().unwrap()
-    }
-
-    pub fn output_prefix(&self) -> PathBuf {
-        self.args.output_prefix.clone().unwrap()
-    }
-
-    pub fn name(&self) -> String {
-        self.args.name.clone().unwrap()
-    }
-
-    pub fn team_number(&self) -> u32 {
-        self.args.team_number.unwrap()
     }
 }
