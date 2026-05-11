@@ -8,6 +8,38 @@ use quote::ToTokens;
 use regex::Regex;
 use syn::{DataStruct, DeriveInput, Fields};
 
+/// Special Robostart parser
+///
+/// Automatically generates getters for all elements in a struct, returning
+/// self.<elem>.as_ref().unwrap() if the element is of type Option<T>.
+///
+/// Designed for Robostart's use case of having all options capable of being
+/// input through CLI args while prompting the user for anything not submitted
+/// that way. This enables a single struct definition for clap arguments while
+/// reducing boilerplate around navigating the necessary Option<> handling that
+/// comes with that.
+///
+/// # Examples
+///
+/// ```
+/// #[derive(robostart::Parser, clap::Parser)]
+/// struct CliParser {
+///     #[arg(short, long)]
+///     arg1: Option<u32>
+///
+///     #[arg(short, long)]
+///     arg2: String
+/// }
+///
+/// impl CliParser {
+///     pub fn print_args(&self) {
+///         // Getters are automatically generated for arg1 and arg2.
+///         // The getters for optional values assume a value has been populated,
+///         // as Robostart will prompt the user for any absent values.
+///         println!("arg1: {}, arg2: {}", self.arg1(), self.arg2());
+///     }
+/// }
+/// ```
 #[proc_macro_derive(Parser, attributes(prompt))]
 pub fn parser(input: TokenStream) -> TokenStream {
     let syn_item = syn::parse_macro_input!(input as DeriveInput);
