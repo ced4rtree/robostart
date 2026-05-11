@@ -102,7 +102,7 @@ impl CliParser {
 
         if ret.team_number.is_none() {
             ret.team_number = Some(CustomType::new("Team Number: ")
-                .with_formatter(&|i: u32| format!("${i}"))
+                .with_formatter(&|i: u32| format!("{i}"))
                 .with_error_message("Please type a valid integer greater than 0")
                 .prompt()?)
         }
