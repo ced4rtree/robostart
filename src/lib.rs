@@ -121,8 +121,8 @@ pub fn parser(input: TokenStream) -> TokenStream {
             fields: Fields::Named(ref fields),
             ..
         }) => {
-            let field_getters = parser_gen_getters(&fields);
-            let absent_handlers = parser_gen_absent_handlers(&fields);
+            let field_getters = parser_gen_getters(fields);
+            let absent_handlers = parser_gen_absent_handlers(fields);
 
             quote! {
                 impl #name {
