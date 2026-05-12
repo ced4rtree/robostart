@@ -95,6 +95,7 @@ fn parser_gen_absent_handlers(fields: &FieldsNamed) -> Vec<proc_macro2::TokenStr
 /// #[derive(robostart::Parser, clap::Parser)]
 /// struct CliParser {
 ///     #[arg(short, long)]
+///     #[absent_handler(prompt_u32())]
 ///     arg1: Option<u32>
 ///
 ///     #[arg(short, long)]
