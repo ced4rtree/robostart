@@ -60,7 +60,7 @@ fn parser_gen_absent_handlers(fields: &FieldsNamed) -> Vec<proc_macro2::TokenStr
             .filter(|field| field.path().is_ident("absent_handler"))
             .collect();
         let handler = match handler_attrs.len() {
-            ..=0 => panic!("All elements of type Option<T> in a struct that derives robostart::Parser must define an absent handler through the #[absent_handler(...) attribute"),
+            ..=0 => panic!("All elements of type Option<T> in a struct that derives robostart::Parser must define an absent handler through the #[absent_handler(...)] attribute"),
             1 => handler_attrs[0],
             2.. => panic!("You may not define multiple absent handlers for one element in a struct that derives robostart::Parser"),
         };
