@@ -6,19 +6,22 @@ extern crate quote;
 use proc_macro::TokenStream;
 use quote::ToTokens;
 use regex::Regex;
-use syn::{DataStruct, DeriveInput, Fields, FieldsNamed};
+use syn::{Attribute, DataStruct, DeriveInput, Fields, FieldsNamed, Meta, Type};
 
-fn parser_gen_getters(fields: &FieldsNamed) -> Vec<TokenStream> {
+fn is_option(ty: &Type) -> bool {
     let option_regex = Regex::new("Option( )?<.*>").unwrap();
+    let field_type_str = ty.to_token_stream().to_string();
+    option_regex.is_match(field_type_str.as_str())
+}
+
+fn parser_gen_getters(fields: &FieldsNamed) -> Vec<proc_macro2::TokenStream> {
 
     fields.named.iter().map(|field| {
         let field_name = &field.ident;
         let mut field_type = field.ty.to_token_stream();
 
         // remove Option<> from field_type for the getter
-        let field_type_str = field_type.to_token_stream().to_string();
-        let is_option = option_regex.is_match(field_type_str.as_str());
-
+        let is_option = is_option(&field.ty); 
         if is_option {
             let type_tokens: Vec<_> = field.ty.to_token_stream().into_iter().collect();
             let inner_tokens = type_tokens[2..type_tokens.len()-1].to_vec();
@@ -33,7 +36,41 @@ fn parser_gen_getters(fields: &FieldsNamed) -> Vec<TokenStream> {
             pub fn #field_name(&self) -> &#field_type {
                 #getter_ret
             }
-        }.into()
+        }
+    }).collect()
+}
+
+fn parser_gen_absent_handlers(fields: &FieldsNamed) -> Vec<proc_macro2::TokenStream> {
+    fields.named.iter().filter_map(|field| {
+        let ident = &field.ident;
+        let is_option = is_option(&field.ty);
+
+        // don't need to handle a non-optional field
+        if !is_option {
+            return None;
+        }
+
+        let handler_attrs: Vec<&Attribute> = field
+            .attrs
+            .iter()
+            .filter(|field| field.path().is_ident("absent_handler"))
+            .collect();
+        let handler = match handler_attrs.len() {
+            ..=0 => panic!("All elements of type Option<T> in a struct that derives robostart::Parser must define an absent handler through the #[absent_handler(...) attribute"),
+            1 => handler_attrs[0],
+            2.. => panic!("You may not define multiple absent handlers for one element in a struct that derives robostart::Parser"),
+        };
+
+        let handler_tokens = match &handler.meta {
+            Meta::List(lst) => &lst.tokens,
+            _ => panic!("absent_handler helper macro should be assigned in list form, e.g. #[absent_handler(...)]. Found #[{:?}] instead.", handler), 
+        };
+
+        Some(quote! {
+            if self.#ident.is_none() {
+                self.#ident = Some(#handler_tokens)
+            }
+        })
     }).collect()
 }
 
@@ -69,7 +106,7 @@ fn parser_gen_getters(fields: &FieldsNamed) -> Vec<TokenStream> {
 ///     }
 /// }
 /// ```
-#[proc_macro_derive(Parser, attributes(prompt))]
+#[proc_macro_derive(Parser, attributes(absent_handler))]
 pub fn parser(input: TokenStream) -> TokenStream {
     let syn_item = syn::parse_macro_input!(input as DeriveInput);
 
@@ -81,10 +118,15 @@ pub fn parser(input: TokenStream) -> TokenStream {
             ..
         }) => {
             let field_getters = parser_gen_getters(&fields);
+            let absent_handlers = parser_gen_absent_handlers(&fields);
 
             quote! {
                 impl #name {
-                    #(#field_getters)*   
+                    #(#field_getters)*
+
+                    pub fn handle_absent_values(&mut self) {
+                        #(#absent_handlers)*
+                    }
                 }
             }.into()
         }
