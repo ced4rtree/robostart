@@ -14,8 +14,10 @@ fn is_option(ty: &Type) -> bool {
     option_regex.is_match(field_type_str.as_str())
 }
 
+/// Generate code for getting parser fields. Useful for bypassing the Option<T>
+/// automatically, which is necessary to mark an argument as optional for clap,
+/// but unnecessary within Robostart since we prompt for any missing info.
 fn parser_gen_getters(fields: &FieldsNamed) -> Vec<proc_macro2::TokenStream> {
-
     fields.named.iter().map(|field| {
         let field_name = &field.ident;
         let mut field_type = field.ty.to_token_stream();
@@ -40,6 +42,8 @@ fn parser_gen_getters(fields: &FieldsNamed) -> Vec<proc_macro2::TokenStream> {
     }).collect()
 }
 
+/// Generate all the code that will run if an optional value is not present.
+/// It is assumed that the absent handler will populate the data.
 fn parser_gen_absent_handlers(fields: &FieldsNamed) -> Vec<proc_macro2::TokenStream> {
     fields.named.iter().filter_map(|field| {
         let ident = &field.ident;
