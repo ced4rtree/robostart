@@ -56,7 +56,8 @@ pub async fn fetch_project(parser: &CliParser) -> anyhow::Result<()> {
     let commands_file = get_cached_commands_vendordep(parser);
     let commands_file_parent = commands_file.parent()
         .with_context(|| format!("Failed to retrieve parent of file: {:?}", commands_file))?; 
-    std::fs::create_dir_all(commands_file_parent)?;
+    std::fs::create_dir_all(commands_file_parent)
+        .with_context(|| format!("Failed to create directory {:?} while fetching commands vendordep.", commands_file_parent))?;
     if !commands_file.exists() {
         let commands_url = format!(
             "https://raw.githubusercontent.com/wpilibsuite/allwpilib/refs/tags/v{}/wpilibNewCommands/WPILibNewCommands.json",
