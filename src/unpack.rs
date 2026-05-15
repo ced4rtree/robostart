@@ -58,7 +58,7 @@ pub fn install_project(
 
     // Zips are organized into different directories for different languages.
     // "Subtype" here means which specific template/example, e.g. gyro, commandhatchbot, etc.
-    let subtype_path_prefix = format!("{:?}/{}/", source_dir, language);
+    let subtype_path_prefix = format!("{}/{}/", source_dir.to_str().unwrap(), language);
     let subtype_paths: Vec<String> = fs::read_dir(&subtype_path_prefix)
         .with_context(|| format!("While installing unzipped project into final directory, Failed to read contents of directory: {:?}", subtype_path_prefix))?
         .flatten()
@@ -78,8 +78,8 @@ pub fn install_project(
         .with_context(|| "Failed to retrieve input data for which project subtype to initialize.")?;
 
     let source_dir = format!(
-        "{:?}/{}/{}/",
-        source_dir,
+        "{}/{}/{}/",
+        source_dir.to_str().unwrap(),
         language,
         project_subtype
     );
