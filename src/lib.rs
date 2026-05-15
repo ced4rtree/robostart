@@ -72,7 +72,8 @@ fn parser_gen_absent_handlers(fields: &FieldsNamed) -> Vec<proc_macro2::TokenStr
 
         Some(quote! {
             if self.#ident.is_none() {
-                self.#ident = Some(#handler_tokens)
+                let handler = #handler_tokens;
+                self.#ident = Some(handler(&self)?)
             }
         })
     }).collect()
@@ -129,8 +130,10 @@ pub fn parser(input: TokenStream) -> TokenStream {
                 impl #name {
                     #(#field_getters)*
 
-                    pub fn handle_absent_values(&mut self) {
+                    pub fn handle_absent_values(&mut self) -> Result<(), ::anyhow::Error> {
                         #(#absent_handlers)*
+
+                        Ok(())
                     }
                 }
             }.into()
