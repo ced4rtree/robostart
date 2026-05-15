@@ -51,7 +51,7 @@ pub fn install_project(
         return Err(Error::new(
             ErrorKind::AlreadyExists,
             format!("Project directory {:?} already exists", output_dir),
-        )    .into());
+        ).into());
     }
 
     let language = parser.language().to_string().to_lowercase();
@@ -60,7 +60,7 @@ pub fn install_project(
     // "Subtype" here means which specific template/example, e.g. gyro, commandhatchbot, etc.
     let subtype_path_prefix = format!("{:?}/{}/", source_dir, language);
     let subtype_paths: Vec<String> = fs::read_dir(&subtype_path_prefix)
-        .with_context(|| format!("While installing unzipped project from /tmp, Failed to read contents of directory: {:?}", subtype_path_prefix))?
+        .with_context(|| format!("While installing unzipped project into final directory, Failed to read contents of directory: {:?}", subtype_path_prefix))?
         .flatten()
         .map(|x| {
             x.path()
