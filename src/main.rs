@@ -40,7 +40,7 @@ pub fn get_cached_gitignore() -> PathBuf {
 }
 
 #[tokio::main]
-async fn main() -> Result<(), Box<dyn std::error::Error>> {
+async fn main() -> anyhow::Result<()> {
     let parser = CliParser::new()?;
 
     // fetch selected project from github into cache

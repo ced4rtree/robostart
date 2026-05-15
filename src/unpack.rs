@@ -65,6 +65,7 @@ pub fn install_project(
         .map(|x| {
             x.path()
                 .to_str()
+                .with_context(|| format!("Failed to parse path {:?} as unicode while reading project subtypes.", x.path()))
                 .unwrap()
                 .to_string()
                 .replace(&subtype_path_prefix, "")
