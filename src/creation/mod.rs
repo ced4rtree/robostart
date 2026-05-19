@@ -18,5 +18,7 @@ pub async fn create_project(config: &Config) -> anyhow::Result<()> {
         config
     )?;
 
+    println!("Project successfully created!");
+
     Ok(())
 }

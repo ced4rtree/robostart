@@ -1,13 +1,23 @@
 /// Parse user supplied arguments
-use std::{cell::OnceCell, fmt::{Display, Formatter}, path::PathBuf};
+use std::{cell::OnceCell, path::PathBuf};
 
 use anyhow::Context;
 
+use derive_more::Display;
 use inquire::{CustomType, Select, Text};
 use robostart::AllVariants;
 
 #[derive(robostart::LazyStruct, Debug)]
 pub struct Config {
+    /// The action that robostart should perform
+    #[absent_handler(|_| Select::new(
+        "Action: ",
+        Action::all_variants().to_vec()
+    )
+        .prompt()
+        .with_context(|| "Failed to prompt for Robostart action."))]
+    action: OnceCell<Action>,
+
     /// Language to initialize
     #[absent_handler(|_| Select::new(
         "Language: ",
@@ -72,28 +82,23 @@ pub struct Config {
     team_number: OnceCell<u32>,
 }
 
+/// What action to perform
+#[derive(Clone, Debug, AllVariants, Display)]
+pub enum Action {
+    Create,
+    Import
+}
+
 /// Which language to use
-#[derive(Clone, Debug, AllVariants)]
+#[derive(Clone, Debug, AllVariants, Display)]
 pub enum Language {
     Java,
     Cpp,
 }
 
-impl Display for Language {
-    fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), std::fmt::Error> {
-        write!(f, "{self:?}")
-    }    
-}
-
 /// Which type of project to initialize
-#[derive(Clone, Debug, AllVariants)]
+#[derive(Clone, Debug, AllVariants, Display)]
 pub enum ProjectType {
     Example,
     Template,
-}
-
-impl Display for ProjectType {
-    fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), std::fmt::Error> {
-        write!(f, "{self:?}")
-    }    
 }

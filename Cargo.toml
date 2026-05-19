@@ -9,6 +9,7 @@ proc-macro = true
 [dependencies]
 anyhow = "1.0.102"
 copy_dir = "0.1.3"
+derive_more = { version = "2.1.1", features = ["display"] }
 inquire = "0.7.5"
 proc-macro2 = "1.0.106"
 quote = "1.0.40"
