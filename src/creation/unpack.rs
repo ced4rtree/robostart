@@ -7,8 +7,8 @@ use anyhow::Context;
 use inquire::Select;
 use zip::ZipArchive;
 
-use crate::{get_cached_commands_vendordep, get_cached_gitignore};
-use crate::parser::CliParser;
+use crate::cache::{get_cached_commands_vendordep, get_cached_gitignore};
+use crate::config::Config;
 
 pub fn unpack_fetched_zip(
     zip_file_path: &PathBuf,
@@ -34,19 +34,19 @@ pub fn unpack_fetched_zip(
 
 pub fn install_project(
     source_dir: &Path,
-    parser: &CliParser
+    config: &Config
 ) -> anyhow::Result<()> {
     // create output prefix directory in case it doesn't already exist
-    std::fs::create_dir_all(parser.output_prefix()).with_context(
+    std::fs::create_dir_all(config.output_prefix()?).with_context(
         || format!(
             "Failed to create output prefix directory {:?}",
-            parser.output_prefix()
+            config.output_prefix()
         )
     )?;
 
     // prevent creating a robot project in a directory that already exists
-    let output_dir = parser.output_prefix()
-        .join(parser.name());
+    let output_dir = config.output_prefix()?
+        .join(config.name()?);
     if output_dir.exists() {
         return Err(Error::new(
             ErrorKind::AlreadyExists,
@@ -54,7 +54,7 @@ pub fn install_project(
         ).into());
     }
 
-    let language = parser.language().to_string().to_lowercase();
+    let language = config.language()?.to_string().to_lowercase();
 
     // Zips are organized into different directories for different languages.
     // "Subtype" here means which specific template/example, e.g. gyro, commandhatchbot, etc.
@@ -71,7 +71,7 @@ pub fn install_project(
                 .replace(&subtype_path_prefix, "")
         })
         .collect();
-    let prompt = format!("Desired {}", parser.project_type());
+    let prompt = format!("Desired {}", config.project_type()?);
 
     let project_subtype = Select::new(&prompt, subtype_paths)
         .prompt()
@@ -93,7 +93,7 @@ pub fn install_project(
     let mut preferences = String::new();
     preferences_file.read_to_string(&mut preferences)
         .with_context(|| format!("Failed to read initial contents of the project's preferences file: `{:?}'.", preferences_file))?;
-    let team_number = format!("\"teamNumber\": {}", parser.team_number());
+    let team_number = format!("\"teamNumber\": {}", config.team_number()?);
     preferences = preferences
         .replace("\"teamNumber\": -1", team_number.as_str());
     let mut preferences_file = std::fs::File::create(preferences_path)
@@ -108,7 +108,7 @@ pub fn install_project(
         .with_context(|| format!("Failed to copy gitignore file {:?} to {:?}", cached_gitignore, project_gitignore))?;
 
     // install WPILibNewCommands.json
-    let commands_file = get_cached_commands_vendordep(parser);
+    let commands_file = get_cached_commands_vendordep(config)?;
     let vendordep_folder = output_dir.join("vendordeps");
     std::fs::create_dir_all(&vendordep_folder)?;
     std::fs::copy(commands_file, vendordep_folder.join("WPILibNewCommands.json"))?;

@@ -1,61 +1,15 @@
-use std::path::PathBuf;
+use config::Config;
 
-use parser::CliParser;
+mod config;
+mod creation;
 
-mod fetcher;
-mod parser;
-mod unpack;
-
-pub fn get_robostart_cache() -> PathBuf {
-    PathBuf::from(format!(
-        "{}/.cache/robostart/",
-        std::env::home_dir().unwrap().display()
-    ).as_str())
-}
-
-pub fn get_project_name(parser: &CliParser) -> String {
-    format!(
-        "{}-{:?}",
-        parser.wpilib_version(),
-        parser.project_type(),
-    )
-}
-
-// where the cached .zip with all of the examples/templates is located
-pub fn get_project_zip_path(parser: &CliParser) -> PathBuf {
-    get_robostart_cache().join(get_project_name(parser) + ".zip")
-}
-
-// where the cached directory with all of the examples/templates is located
-pub fn get_project_unzipped_path(parser: &CliParser) -> PathBuf {
-    get_robostart_cache().join(get_project_name(parser))
-}
-
-pub fn get_cached_commands_vendordep(parser: &CliParser) -> PathBuf {
-    get_robostart_cache().join(format!("vendordeps/newcommands-{}.json", parser.wpilib_version()))
-}
-
-pub fn get_cached_gitignore() -> PathBuf {
-    get_robostart_cache().join("gitignore")
-}
+pub mod cache;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
-    let parser = CliParser::new()?;
+    let config = Config::new()?;
 
-    // fetch selected project from github into cache
-    fetcher::fetch_project(&parser).await?;
-
-    unpack::unpack_fetched_zip(
-        &get_project_zip_path(&parser),
-        &get_project_unzipped_path(&parser),
-    )?;
-
-    // transfer project from cache into install dir
-    unpack::install_project(
-        &get_project_unzipped_path(&parser),
-        &parser
-    )?;
+    creation::create_project(&config).await?;
 
     println!("Project successfully created!");
 
